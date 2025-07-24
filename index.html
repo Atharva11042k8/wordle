@@ -1,0 +1,272 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>10-Letter Wordle</title>
+  <style>
+    body {
+      font-family: 'Clear Sans', 'Arial', sans-serif;
+      background-color: #121213;
+      color: white;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 20px;
+      height: 100vh;
+      margin: 0;
+    }
+
+    h1 {
+      margin-bottom: 20px;
+      font-size: 28px;
+      color: #ffffff;
+    }
+
+    #board {
+      display: grid;
+      grid-template-rows: repeat(6, 1fr);
+      gap: 8px;
+    }
+
+    .row {
+      display: grid;
+      grid-template-columns: repeat(10, 1fr);
+      gap: 8px;
+    }
+
+    .tile {
+      width: 45px;
+      height: 45px;
+      border: 2px solid #3a3a3c;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      text-transform: uppercase;
+      font-size: 24px;
+      font-weight: bold;
+      background-color: #121213;
+      color: white;
+      transition: transform 0.4s ease-in-out, background-color 0.4s ease-in-out, border-color 0.4s ease-in-out;
+      transform-style: preserve-3d;
+      backface-visibility: hidden;
+      border-radius: 5px;
+    }
+
+    .flip {
+      animation: flip 0.6s ease forwards;
+    }
+
+    @keyframes flip {
+      0% {
+        transform: rotateX(0deg);
+      }
+      50% {
+        transform: rotateX(90deg);
+        background-color: #121213;
+        color: transparent;
+      }
+      100% {
+        transform: rotateX(0deg);
+        color: white;
+      }
+    }
+
+    .correct {
+      background-color: #538d4e !important;
+      border-color: #538d4e !important;
+    }
+
+    .present {
+      background-color: #b59f3b !important;
+      border-color: #b59f3b !important;
+    }
+
+    .absent {
+      background-color: #3a3a3c !important;
+      border-color: #3a3a3c !important;
+    }
+
+    #keyboard {
+      margin-top: 30px;
+      display: grid;
+      grid-template-columns: repeat(10, 1fr);
+      gap: 8px;
+      max-width: 500px;
+    }
+
+    .key {
+      padding: 10px;
+      background-color: #818384;
+      color: white;
+      text-align: center;
+      border-radius: 4px;
+      cursor: pointer;
+      user-select: none;
+      font-weight: bold;
+      font-size: 14px;
+      transition: background-color 0.2s ease;
+    }
+
+    .key:active {
+      background-color: #565758;
+    }
+
+    .wide-key {
+      grid-column: span 2;
+    }
+
+    @media (max-width: 600px) {
+      .tile {
+        width: 35px;
+        height: 35px;
+        font-size: 18px;
+      }
+
+      .key {
+        padding: 8px;
+        font-size: 12px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <h1>ATHARVA THE ENCODER</h1>
+  <div id="board"></div>
+  <div id="keyboard"></div>
+
+  <script>
+    const SOLUTIONS = [
+      "HADKESAHEB",
+      "",
+    ];
+
+    const solution = SOLUTIONS[Math.floor(Math.random() * SOLUTIONS.length)].toLowerCase();
+    const board = document.getElementById('board');
+    const keyboard = document.getElementById('keyboard');
+
+    let currentRow = 0;
+    let currentTile = 0;
+    let isGameOver = false;
+    const guesses = Array.from({ length: 6 }, () => Array(10).fill(''));
+
+    function createBoard() {
+      for (let i = 0; i < 6; i++) {
+        const row = document.createElement('div');
+        row.classList.add('row');
+        for (let j = 0; j < 10; j++) {
+          const tile = document.createElement('div');
+          tile.classList.add('tile');
+          tile.setAttribute('id', `row-${i}-tile-${j}`);
+          row.appendChild(tile);
+        }
+        board.appendChild(row);
+      }
+    }
+
+    function createKeyboard() {
+      const keys = 'QWERTYUIOPASDFGHJKLZXCVBNM'.split('');
+      keys.push('ENTER', '←');
+      keys.forEach(key => {
+        const keyDiv = document.createElement('div');
+        keyDiv.textContent = key;
+        keyDiv.classList.add('key');
+        if (key === 'ENTER' || key === '←') {
+          keyDiv.classList.add('wide-key');
+        }
+        keyDiv.addEventListener('click', () => handleKey(key));
+        keyboard.appendChild(keyDiv);
+      });
+    }
+
+    function handleKey(key) {
+      if (isGameOver) return;
+
+      if (key === '←') {
+        if (currentTile > 0) {
+          currentTile--;
+          guesses[currentRow][currentTile] = '';
+          updateTiles();
+        }
+      } else if (key === 'ENTER') {
+        if (currentTile === 10) {
+          checkGuess();
+        }
+      } else if (/^[A-Z]$/.test(key)) {
+        if (currentTile < 10) {
+          guesses[currentRow][currentTile] = key.toLowerCase();
+          currentTile++;
+          updateTiles();
+        }
+      }
+    }
+
+    function updateTiles() {
+      for (let i = 0; i < 10; i++) {
+        const tile = document.getElementById(`row-${currentRow}-tile-${i}`);
+        tile.textContent = guesses[currentRow][i].toUpperCase();
+      }
+    }
+
+    function checkGuess() {
+      const guess = guesses[currentRow].join('');
+      const guessArray = guess.split('');
+      const solutionArray = solution.split('');
+      const feedback = Array(10).fill('absent');
+
+      for (let i = 0; i < 10; i++) {
+        if (guessArray[i] === solutionArray[i]) {
+          feedback[i] = 'correct';
+          solutionArray[i] = null;
+        }
+      }
+
+      for (let i = 0; i < 10; i++) {
+        if (feedback[i] !== 'correct') {
+          const idx = solutionArray.indexOf(guessArray[i]);
+          if (idx !== -1) {
+            feedback[i] = 'present';
+            solutionArray[idx] = null;
+          }
+        }
+      }
+
+      for (let i = 0; i < 10; i++) {
+        const tile = document.getElementById(`row-${currentRow}-tile-${i}`);
+        setTimeout(() => {
+          tile.classList.add('flip');
+          tile.classList.add(feedback[i]);
+        }, i * 300);
+      }
+
+      if (guess === solution) {
+        setTimeout(() => {
+          alert('🎉 kya baat hai');
+        }, 3500);
+        isGameOver = true;
+        return;
+      }
+
+      currentRow++;
+      currentTile = 0;
+
+      if (currentRow === 6) {
+        setTimeout(() => {
+          alert(`FAIL TOH HOTA: ${solution.toUpperCase()}`);
+        }, 3500);
+        isGameOver = true;
+      }
+    }
+
+    document.addEventListener('keydown', (e) => {
+      const key = e.key.toUpperCase();
+      if (key === 'BACKSPACE') handleKey('←');
+      else if (key === 'ENTER') handleKey('ENTER');
+      else if (/^[A-Z]$/.test(key)) handleKey(key);
+    });
+
+    createBoard();
+    createKeyboard();
+  </script>
+</body>
+</html>
